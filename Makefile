@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := -g -Wall -MD -std=c99
 
-all: client.out
+all: client.out server.out
 
 client.out : client.o
 

@@ -1,14 +1,18 @@
-#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 int main()
 {
     int sk = socket(PF_INET, SOCK_DGRAM, 0);
+    if (sk < 0) {
+        perror("socket");
+        return EXIT_FAILURE;
+    }
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
         .sin_port   = htons(8000),
@@ -25,6 +29,8 @@ int main()
         perror("recvfrom");
         return EXIT_FAILURE;
     }
-    printf("Received succefully.\n\tFrom: %s\n\tlength: %d\n", addr_ptr->sa_data, addr_len);
+    printf("Received succefully.\n\tFrom: %#X/%d\n\tlength: %d\n\t%s\n", 
+        addr.sin_addr, addr.sin_port, addr_len, buf);
+    close(sk);
     return EXIT_SUCCESS;
 }
