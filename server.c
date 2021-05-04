@@ -16,7 +16,7 @@ int main()
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
         .sin_port   = htons(8000),
-        .sin_addr   = htonl(INADDR_BROADCAST)
+        .sin_addr   = {htonl(INADDR_BROADCAST)}
     };
     int optval = 1;
     char msg[] = "Hello UDP";
@@ -29,6 +29,31 @@ int main()
         perror("sendto");
         return EXIT_FAILURE;
     }
+    close(sk);
+    sk = socket(PF_INET, SOCK_STREAM, 0);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(8001);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    char buf[100];
+    socklen_t socklen = sizeof(addr);
+    if (bind(sk, addr_ptr, socklen) < 0) {
+        perror("bind");
+        return EXIT_FAILURE;
+    }
+    if (listen(sk, 256) < 0) {
+        perror("listen");
+        return EXIT_FAILURE;
+    }
+    int insk = accept(sk, addr_ptr, &socklen);
+    if (insk < 0) {
+        perror("accept");
+        return EXIT_FAILURE;
+    }
+    if (read(insk, buf, sizeof(buf)) < 0) {
+        perror("read");
+        return EXIT_FAILURE;
+    }
+    printf("Received message: %s\n", buf);
     close(sk);
     return EXIT_SUCCESS;
 }
