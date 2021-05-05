@@ -2,12 +2,8 @@
 
 int main(int argc, char **argv)
 {
-    long int nthreads = enter_N(argc, argv);
-    struct sockaddr_in addr;
-    if (wait_broadcast(&addr) < 0) {
-        return EXIT_FAILURE;
-    }
-    int server_fd = connect_server(&addr);
+    long int nworkers = enter_N(argc, argv);
+    int server_fd = connect_server(nworkers);
     if (server_fd < 0) {
         return EXIT_FAILURE;
     }
@@ -42,20 +38,23 @@ int wait_broadcast(struct sockaddr_in *addr)
     return 0;
 }
 
-int connect_server(struct sockaddr_in *addr)
+int connect_server(long int nworkers)
 {
+    struct sockaddr_in addr;
+    if (wait_broadcast(&addr) < 0) {
+        return -1;
+    }
     int sk = socket(PF_INET, SOCK_STREAM, 0);
     if (sk < 0) {
         perror("socket");
         return -1;
     }
-    addr->sin_port = htons(TCP_PORT);
-    if (connect(sk, (struct sockaddr*)addr, sizeof(*addr)) < 0) {
+    addr.sin_port = htons(TCP_PORT);
+    if (connect(sk, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("connect");
         return -1;
     }
-    char response[] = "TCP Client connected\n";
-    if (write(sk, response, sizeof(response)) < 0) {
+    if (write(sk, &nworkers, sizeof(nworkers)) < 0) {
         perror("write");
         return -1;
     }

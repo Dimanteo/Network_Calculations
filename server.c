@@ -3,21 +3,21 @@
 int main(int argc, char **argv)
 {
     long int nclients = enter_N(argc, argv);
-    int *clients_fdset = (int*)malloc(nclients);
-    if (clients_fdset == NULL) {
+    struct Client *clients = (struct Client*)malloc(nclients * sizeof(clients[0]));
+    if (clients == NULL) {
         fprintf(stderr, "Error: malloc\n");
         return EXIT_FAILURE;
     }
     int server_fd = open_TCPsocket();
-    wait_clients(server_fd, nclients, clients_fdset);
+    wait_clients(server_fd, nclients, clients);
     send_tasks();
     receive_results();
 
     close(server_fd);
     for (int i = 0; i < nclients; i++) {
-        close(clients_fdset[i]);
+        close(clients[i].fd);
     }
-    free(clients_fdset);
+    free(clients);
     return EXIT_SUCCESS;
 }
 
@@ -47,8 +47,7 @@ int send_broadcast()
     return 0;
 }
 
-int wait_clients(int sk, int nclients, int *cl_fdset) {
-    char buf[100];
+int wait_clients(int sk, int nclients, struct Client *clients) {
     fd_set fdset;
     struct timeval timeout = {
         .tv_sec = 10,
@@ -78,12 +77,12 @@ int wait_clients(int sk, int nclients, int *cl_fdset) {
             perror("accept");
             return -1;
         }
-        cl_fdset[i] = fd;
-        if (read(fd, buf, sizeof(buf)) < 0) {
+        clients[i].fd = fd;
+        if (read(fd, &clients[i].workers, sizeof(clients[i].workers)) < 0) {
             perror("read");
             return -1;
         }
-        printf("Received message: %s\n", buf);
+        printf("Client[%d]: %ld\n", i, clients[i].workers);
     }
     return sk;
 }

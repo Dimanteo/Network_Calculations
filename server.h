@@ -13,6 +13,11 @@
 #include "cmdargs.h"
 #include "network.h"
 
+struct Client {
+    long int workers;
+    int fd;
+};
+
 int send_broadcast();
 int wait_clients();
 int send_tasks();
