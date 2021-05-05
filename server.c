@@ -8,8 +8,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "Error: malloc\n");
         return EXIT_FAILURE;
     }
-    send_broadcast();
-    int server_fd = wait_clients(nclients, clients_fdset);
+    int server_fd = open_TCPsocket();
+    wait_clients(server_fd, nclients, clients_fdset);
     send_tasks();
     receive_results();
 
@@ -47,26 +47,33 @@ int send_broadcast()
     return 0;
 }
 
-int wait_clients(int nclients, int *cl_fdset) {
-    int sk = socket(PF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in addr = {
-        .sin_family = AF_INET,
-        .sin_port = htons(TCP_PORT),
-        .sin_addr = {htonl(INADDR_ANY)}
-    };
+int wait_clients(int sk, int nclients, int *cl_fdset) {
     char buf[100];
-    socklen_t socklen = sizeof(addr);
-    struct sockaddr *addr_ptr = (struct sockaddr*)&addr;
-    if (bind(sk, addr_ptr, socklen) < 0) {
-        perror("bind");
-        return -1;
-    }
-    if (listen(sk, SOMAXCONN) < 0) {
-        perror("listen");
-        return -1;
-    }
+    fd_set fdset;
+    struct timeval timeout = {
+        .tv_sec = 10,
+        .tv_usec = 0
+    };
     for (int i = 0; i < nclients; i++) {
-        int fd = accept(sk, addr_ptr, &socklen);
+        for (int try = 0, evt = 0; evt == 0; try++) {
+            FD_ZERO(&fdset);
+            FD_SET(sk, &fdset);
+            if (send_broadcast() < 0) {
+                return -1;
+            }
+            evt = select(sk + 1, &fdset, NULL, NULL, &timeout);
+            if (evt < 0) {
+                perror("select");
+                return -1;
+            }
+            if (try == 5) {
+                fprintf(stderr, "Clients not found.\n");
+                return -1;
+            }
+            timeout.tv_sec = 10;
+            timeout.tv_usec = 0;
+        }
+        int fd = accept(sk, NULL, NULL);
         if (fd < 0) {
             perror("accept");
             return -1;
@@ -77,6 +84,27 @@ int wait_clients(int nclients, int *cl_fdset) {
             return -1;
         }
         printf("Received message: %s\n", buf);
+    }
+    return sk;
+}
+
+int open_TCPsocket()
+{
+    int sk = socket(PF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(TCP_PORT),
+        .sin_addr = {htonl(INADDR_ANY)}
+    };
+    socklen_t socklen = sizeof(addr);
+    struct sockaddr *addr_ptr = (struct sockaddr*)&addr;
+    if (bind(sk, addr_ptr, socklen) < 0) {
+        perror("bind");
+        return -1;
+    }
+    if (listen(sk, SOMAXCONN) < 0) {
+        perror("listen");
+        return -1;
     }
     return sk;
 }

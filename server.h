@@ -2,6 +2,8 @@
 #define SERVER_H
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <arpa/inet.h>
@@ -15,4 +17,5 @@ int send_broadcast();
 int wait_clients();
 int send_tasks();
 int receive_results();
+int open_TCPsocket();
 #endif
