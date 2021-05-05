@@ -1,15 +1,17 @@
 CC := gcc
-CFLAGS := -g -Wall -MD -std=c99
+CFLAGS := -g -Wall -Wextra -MD -std=c99
 
 all: client.out server.out
 
-client.out : client.o
+client.out : client.o cmdargs.o
 
 server.out : server.o
 
 client.o : client.c
 
 server.o : server.c
+
+cmdargs.o : cmdargs.c
 
 %.out : %.o
 	$(CC) $^ -o $@
