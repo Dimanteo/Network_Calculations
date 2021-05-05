@@ -3,10 +3,21 @@
 int main(int argc, char **argv)
 {
     long int nclients = enter_N(argc, argv);
+    int *clients_fdset = (int*)malloc(nclients);
+    if (clients_fdset == NULL) {
+        fprintf(stderr, "Error: malloc\n");
+        return EXIT_FAILURE;
+    }
     send_broadcast();
-    wait_clients();
+    int server_fd = wait_clients(nclients, clients_fdset);
     send_tasks();
     receive_results();
+
+    close(server_fd);
+    for (int i = 0; i < nclients; i++) {
+        close(clients_fdset[i]);
+    }
+    free(clients_fdset);
     return EXIT_SUCCESS;
 }
 
@@ -19,7 +30,7 @@ int send_broadcast()
     }
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
-        .sin_port   = htons(8000),
+        .sin_port   = htons(UDP_PORT),
         .sin_addr   = {htonl(INADDR_BROADCAST)}
     };
     int optval = 1;
@@ -36,11 +47,11 @@ int send_broadcast()
     return 0;
 }
 
-int wait_clients() {
+int wait_clients(int nclients, int *cl_fdset) {
     int sk = socket(PF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
-        .sin_port = htons(8001),
+        .sin_port = htons(TCP_PORT),
         .sin_addr = {htonl(INADDR_ANY)}
     };
     char buf[100];
@@ -50,22 +61,24 @@ int wait_clients() {
         perror("bind");
         return -1;
     }
-    if (listen(sk, 256) < 0) {
+    if (listen(sk, SOMAXCONN) < 0) {
         perror("listen");
         return -1;
     }
-    int insk = accept(sk, addr_ptr, &socklen);
-    if (insk < 0) {
-        perror("accept");
-        return -1;
+    for (int i = 0; i < nclients; i++) {
+        int fd = accept(sk, addr_ptr, &socklen);
+        if (fd < 0) {
+            perror("accept");
+            return -1;
+        }
+        cl_fdset[i] = fd;
+        if (read(fd, buf, sizeof(buf)) < 0) {
+            perror("read");
+            return -1;
+        }
+        printf("Received message: %s\n", buf);
     }
-    if (read(insk, buf, sizeof(buf)) < 0) {
-        perror("read");
-        return -1;
-    }
-    printf("Received message: %s\n", buf);
-    close(sk);
-    return 0;
+    return sk;
 }
 
 int send_tasks()

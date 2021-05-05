@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "cmdargs.h"
+#include "network.h"
 
 int send_broadcast();
 int wait_clients();
