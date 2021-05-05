@@ -50,7 +50,7 @@ int connect_server(struct sockaddr_in *addr)
         return -1;
     }
     addr->sin_port = htons(TCP_PORT);
-    if (connect(sk, (struct sockaddr*)addr, sizeof(addr)) < 0) {
+    if (connect(sk, (struct sockaddr*)addr, sizeof(*addr)) < 0) {
         perror("connect");
         return -1;
     }

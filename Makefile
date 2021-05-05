@@ -5,7 +5,7 @@ all: client.out server.out
 
 client.out : client.o cmdargs.o
 
-server.out : server.o
+server.out : server.o cmdargs.o
 
 client.o : client.c
 
