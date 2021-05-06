@@ -163,6 +163,7 @@ int receive_results(struct Client *clients, long nclients)
         }
         for (int i = 0; i < nclients; i++) {
             if (FD_ISSET(clients[i].fd, &readfds)) {
+                FD_CLR(clients[i].fd, &readfds);
                 double resbuf = 0;
                 if (read(clients[i].fd, &resbuf, sizeof(resbuf)) < 0) {
                     perror("read");
@@ -170,6 +171,8 @@ int receive_results(struct Client *clients, long nclients)
                 }
                 result += resbuf;
                 received++;
+            } else {
+                FD_SET(clients[i].fd, &readfds);
             }
         }
     }
