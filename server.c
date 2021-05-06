@@ -117,9 +117,14 @@ int open_TCPsocket()
 
 int send_tasks(struct Client *clients, long nclients, long nworkers)
 {
-    double step = (INT_TO - INT_FROM) / nworkers;
-    size_t wrk_steps = INT_STEPS / nworkers;
-    double left = INT_FROM;
+    struct Task task;
+    if (parse_task_file(&task) < 0) {
+        fprintf(stderr, "Failed to parse config file\n");
+        return -1;
+    }
+    double step = (task.to - task.from) / nworkers;
+    size_t wrk_steps = task.nsteps / nworkers;
+    double left = task.from;
     for (long i = 0; i < nclients; i++) {
         struct Task task = {
             .from   = left,
@@ -177,5 +182,17 @@ int receive_results(struct Client *clients, long nclients)
         }
     }
     printf("Result = %f\n", result);
+    return 0;
+}
+
+int parse_task_file(struct Task *task)
+{
+    FILE* f = fopen("config_integral", "r");
+    if (f == NULL) {
+        perror("fopen");
+        return -1;
+    }
+    fscanf(f, "a:%lf\nb:%lf\nd:%ld", &task->from, &task->to, &task->nsteps);
+    printf("Task: cos(3x) from %lf to %lf steps %ld\n", task->from, task->to, task->nsteps);
     return 0;
 }
