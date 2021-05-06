@@ -7,7 +7,10 @@ int main(int argc, char **argv)
     if (server_fd < 0) {
         return EXIT_FAILURE;
     }
-    receive_task();
+    struct Task task;
+    if (receive_task(server_fd, &task) < 0) {
+        return EXIT_FAILURE;
+    }
     run_workers();
     send_result();
     close(server_fd);
@@ -61,8 +64,14 @@ int connect_server(long int nworkers)
     return sk;
 }
 
-int receive_task()
+int receive_task(int server_fd, struct Task *task)
 {
+    if (read(server_fd, task, sizeof(*task)) < 0) {
+        perror("read");
+        return -1;
+    }
+    printf("Task received:\n\ta = %f\n\tb = %f\n\tsteps = %ld\n",
+        task->from, task->to, task->nsteps);
     return 0;
 }
 

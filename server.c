@@ -9,8 +9,10 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     int server_fd = open_TCPsocket();
-    wait_clients(server_fd, nclients, clients);
-    send_tasks();
+    long nworkers = wait_clients(server_fd, nclients, clients);
+    if (send_tasks(clients, nclients, nworkers) < 0) {
+        return EXIT_FAILURE;
+    }
     receive_results();
 
     close(server_fd);
@@ -47,8 +49,9 @@ int send_broadcast()
     return 0;
 }
 
-int wait_clients(int sk, int nclients, struct Client *clients) {
+long wait_clients(int sk, int nclients, struct Client *clients) {
     fd_set fdset;
+    long int total_workers = 0;
     struct timeval timeout = {
         .tv_sec = 10,
         .tv_usec = 0
@@ -82,9 +85,10 @@ int wait_clients(int sk, int nclients, struct Client *clients) {
             perror("read");
             return -1;
         }
+        total_workers += clients[i].workers;
         printf("Client[%d]: %ld\n", i, clients[i].workers);
     }
-    return sk;
+    return total_workers;
 }
 
 int open_TCPsocket()
@@ -108,8 +112,24 @@ int open_TCPsocket()
     return sk;
 }
 
-int send_tasks()
+int send_tasks(struct Client *clients, long nclients, long nworkers)
 {
+    double step = (INT_TO - INT_FROM) / nworkers;
+    size_t wrk_steps = INT_STEPS / nworkers;
+    double left = INT_FROM;
+    for (long i = 0; i < nclients; i++) {
+        struct Task task = {
+            .from   = left,
+            .to     = left + step * clients[i].workers,
+            .nsteps = wrk_steps * clients[i].workers
+        };
+        if (write(clients[i].fd, &task, sizeof(task)) < 0) {
+            perror("write");
+            return -1;
+        }
+        left += step * clients[i].workers;
+    }
+    
     return 0;
 }
 
