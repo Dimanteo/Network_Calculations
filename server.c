@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     if (send_tasks(clients, nclients, nworkers) < 0) {
         return EXIT_FAILURE;
     }
-    receive_results();
+    receive_results(clients, nclients);
 
     close(server_fd);
     for (int i = 0; i < nclients; i++) {
@@ -136,7 +136,43 @@ int send_tasks(struct Client *clients, long nclients, long nworkers)
     return 0;
 }
 
-int receive_results()
+int receive_results(struct Client *clients, long nclients)
 {
+    fd_set readfds;
+    int maxfd = -1;
+    long received = 0;
+    double result = 0;
+    FD_ZERO(&readfds);
+    for (int i = 0; i < nclients; i++) {
+        FD_SET(clients[i].fd, &readfds);
+        if (maxfd < clients[i].fd)
+            maxfd = clients[i].fd;
+    }
+    while (received != nclients) {
+        struct timeval timeout = {
+            .tv_sec = 30,
+            .tv_usec = 0
+        };
+        int events = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
+        if (events < 0) {
+            perror("select");
+            return -1;
+        } else if (events == 0) {
+            fprintf(stderr, "Clients response timeout exceeded.\n");
+            return -1;
+        }
+        for (int i = 0; i < nclients; i++) {
+            if (FD_ISSET(clients[i].fd, &readfds)) {
+                double resbuf = 0;
+                if (read(clients[i].fd, &resbuf, sizeof(resbuf)) < 0) {
+                    perror("read");
+                    return -1;
+                }
+                result += resbuf;
+                received++;
+            }
+        }
+    }
+    printf("Result = %f\n", result);
     return 0;
 }

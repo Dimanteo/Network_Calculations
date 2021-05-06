@@ -20,7 +20,9 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     printf("Result: %f\n", res);
-    send_result();
+    if (send_result(server_fd, res) < 0) {
+        return EXIT_FAILURE;
+    }
     close(server_fd);
     return EXIT_SUCCESS;
 }
@@ -83,7 +85,11 @@ int receive_task(int server_fd, struct Task *task)
     return 0;
 }
 
-int send_result()
+int send_result(int server_fd, numb_t res)
 {
+    if (write(server_fd, &res, sizeof(res)) < 0) {
+        perror("write");
+        return -1;
+    }
     return 0;
 }

@@ -15,6 +15,6 @@
 int wait_broadcast(struct sockaddr_in *addr);
 int connect_server(long int workers);
 int receive_task(int server_fd, struct Task *task);
-int send_result();
+int send_result(int server_fd, numb_t res);
 
 #endif
