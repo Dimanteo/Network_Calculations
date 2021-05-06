@@ -8,6 +8,7 @@ numb_t run_workers(struct Task *task, long nthreads)
     if (ncores == -1) {
         return NAN;
     }
+    dump_cpuinfo(ncores, nthreads, cores);
     if (map_threads(nthreads, ncores, cores) == -1) {
         return NAN;
     }

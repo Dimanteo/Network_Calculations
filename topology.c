@@ -67,16 +67,14 @@ static int get_value(int id, const char *file, char *buf, size_t bufsz)
 
 static int parse_list(char *string, int retbuf[])
 {
-    int num, read, cnt = 0;
-    read = sscanf(string, "%d", &num);
-    if (read == 0)
-        return -1;
-    retbuf[cnt++] = num;
-    string = strchr(string, ',');
-    while (string != NULL) {
-        sscanf(++string, "%d", &num);
-        retbuf[cnt++] = num;
-        string = strchr(string, ',');
+    int cnt = 0;
+    char *delim = ",-";
+    char *tok = strtok(string, delim);
+    while (tok != NULL) {
+        long num = strtol(tok, NULL, 10);
+        retbuf[cnt] = num;
+        cnt++;
+        tok = strtok(NULL, delim);
     }
     return cnt;
 }
