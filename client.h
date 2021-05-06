@@ -10,11 +10,11 @@
 
 #include "network.h"
 #include "cmdargs.h"
+#include "worker.h"
 
 int wait_broadcast(struct sockaddr_in *addr);
 int connect_server(long int workers);
 int receive_task(int server_fd, struct Task *task);
-int run_workers();
 int send_result();
 
 #endif

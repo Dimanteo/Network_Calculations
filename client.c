@@ -3,6 +3,10 @@
 int main(int argc, char **argv)
 {
     long int nworkers = enter_N(argc, argv);
+    if (nworkers <= 0) {
+        fprintf(stderr, "No threads requested\n");
+        return EXIT_FAILURE;
+    }
     int server_fd = connect_server(nworkers);
     if (server_fd < 0) {
         return EXIT_FAILURE;
@@ -11,7 +15,11 @@ int main(int argc, char **argv)
     if (receive_task(server_fd, &task) < 0) {
         return EXIT_FAILURE;
     }
-    run_workers();
+    numb_t res = run_workers(&task, nworkers);
+    if (isnan(res)) {
+        return EXIT_FAILURE;
+    }
+    printf("Result: %f\n", res);
     send_result();
     close(server_fd);
     return EXIT_SUCCESS;
@@ -72,11 +80,6 @@ int receive_task(int server_fd, struct Task *task)
     }
     printf("Task received:\n\ta = %f\n\tb = %f\n\tsteps = %ld\n",
         task->from, task->to, task->nsteps);
-    return 0;
-}
-
-int run_workers()
-{
     return 0;
 }
 

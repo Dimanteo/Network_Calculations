@@ -10,6 +10,9 @@ int main(int argc, char **argv)
     }
     int server_fd = open_TCPsocket();
     long nworkers = wait_clients(server_fd, nclients, clients);
+    if (nworkers < 0) {
+        return EXIT_FAILURE;
+    }
     if (send_tasks(clients, nclients, nworkers) < 0) {
         return EXIT_FAILURE;
     }

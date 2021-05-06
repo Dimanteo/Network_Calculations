@@ -20,7 +20,7 @@ struct Client {
 
 const double INT_FROM  = -10000;
 const double INT_TO    = 10000;
-const size_t INT_STEPS = 2000000;
+const size_t INT_STEPS = 20000000;
 
 int send_broadcast();
 long wait_clients(int sk, int nclients, struct Client *clients);
