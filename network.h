@@ -9,5 +9,5 @@ struct Task {
     double to;
     size_t nsteps;
 };
-
+#define DBG_SLEEP(t) printf("SLEEP\n"); sleep(t);
 #endif

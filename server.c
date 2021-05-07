@@ -55,10 +55,12 @@ int send_broadcast()
     struct sockaddr *addr_ptr = (struct sockaddr*)&addr;
     if (setsockopt(sk, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < -1) {
         perror("setsockopt");
+        close(sk);
         return -1;
     }
     if (sendto(sk, NULL, 0, 0, addr_ptr, sizeof(addr)) < 0) {
         perror("sendto");
+        close(sk);
         return -1;
     }
     close(sk);
@@ -74,6 +76,11 @@ long wait_clients(int sk, long nclients, struct Client *clients) {
     };
     for (int i = 0; i < nclients; i++) {
         for (int try = 0, evt = 0; evt == 0; try++) {
+            if (try == 5) {
+                fprintf(stderr, "Clients not found.\n");
+                close_clientsfd(i, clients);
+                return -1;
+            }
             FD_ZERO(&fdset);
             FD_SET(sk, &fdset);
             if (send_broadcast() < 0) {
@@ -83,11 +90,6 @@ long wait_clients(int sk, long nclients, struct Client *clients) {
             evt = select(sk + 1, &fdset, NULL, NULL, &timeout);
             if (evt < 0) {
                 perror("select");
-                close_clientsfd(i, clients);
-                return -1;
-            }
-            if (try == 5) {
-                fprintf(stderr, "Clients not found.\n");
                 close_clientsfd(i, clients);
                 return -1;
             }
@@ -101,10 +103,15 @@ long wait_clients(int sk, long nclients, struct Client *clients) {
             return -1;
         }
         clients[i].fd = fd;
-        if (read(fd, &clients[i].workers, sizeof(clients[i].workers)) < 0) {
+        ssize_t bytes = read(fd, &clients[i].workers, sizeof(clients[i].workers));
+        if (bytes < 0) {
             perror("read");
             close_clientsfd(i + 1, clients);
             return -1;
+        } else if (bytes == 0) {
+            close(clients[i].fd);
+            i--;
+            continue;
         }
         total_workers += clients[i].workers;
         printf("Client[%d]: %ld\n", i, clients[i].workers);
