@@ -1,29 +1,40 @@
 #include "server.h"
 
+static void close_clientsfd(long nclients, struct Client *clients);
+
 int main(int argc, char **argv)
 {
+    int return_code = EXIT_FAILURE;
     long int nclients = enter_N(argc, argv);
     struct Client *clients = (struct Client*)malloc(nclients * sizeof(clients[0]));
     if (clients == NULL) {
         fprintf(stderr, "Error: malloc\n");
-        return EXIT_FAILURE;
+        goto return_error;
     }
     int server_fd = open_TCPsocket();
+    if (server_fd < 0) {
+        goto clients_cleanup;
+    }
     long nworkers = wait_clients(server_fd, nclients, clients);
     if (nworkers < 0) {
-        return EXIT_FAILURE;
+        goto server_fd_cleanup;
     }
     if (send_tasks(clients, nclients, nworkers) < 0) {
-        return EXIT_FAILURE;
+        goto cleanup;
     }
-    receive_results(clients, nclients);
+    if (receive_results(clients, nclients) < 0) {
+        goto cleanup;
+    }
+    return_code = EXIT_SUCCESS;
 
+    cleanup:
+    close_clientsfd(nclients, clients);
+    server_fd_cleanup:
     close(server_fd);
-    for (int i = 0; i < nclients; i++) {
-        close(clients[i].fd);
-    }
+    clients_cleanup:
     free(clients);
-    return EXIT_SUCCESS;
+    return_error:
+    return return_code;
 }
 
 int send_broadcast() 
@@ -52,7 +63,7 @@ int send_broadcast()
     return 0;
 }
 
-long wait_clients(int sk, int nclients, struct Client *clients) {
+long wait_clients(int sk, long nclients, struct Client *clients) {
     fd_set fdset;
     long int total_workers = 0;
     struct timeval timeout = {
@@ -64,15 +75,18 @@ long wait_clients(int sk, int nclients, struct Client *clients) {
             FD_ZERO(&fdset);
             FD_SET(sk, &fdset);
             if (send_broadcast() < 0) {
+                close_clientsfd(i, clients);
                 return -1;
             }
             evt = select(sk + 1, &fdset, NULL, NULL, &timeout);
             if (evt < 0) {
                 perror("select");
+                close_clientsfd(i, clients);
                 return -1;
             }
             if (try == 5) {
                 fprintf(stderr, "Clients not found.\n");
+                close_clientsfd(i, clients);
                 return -1;
             }
             timeout.tv_sec = 10;
@@ -81,11 +95,13 @@ long wait_clients(int sk, int nclients, struct Client *clients) {
         int fd = accept(sk, NULL, NULL);
         if (fd < 0) {
             perror("accept");
+            close_clientsfd(i, clients);
             return -1;
         }
         clients[i].fd = fd;
         if (read(fd, &clients[i].workers, sizeof(clients[i].workers)) < 0) {
             perror("read");
+            close_clientsfd(i + 1, clients);
             return -1;
         }
         total_workers += clients[i].workers;
@@ -94,9 +110,20 @@ long wait_clients(int sk, int nclients, struct Client *clients) {
     return total_workers;
 }
 
+static void close_clientsfd(long nclients, struct Client *clients)
+{
+    for (int i = 0; i < nclients; i++) {
+        close(clients[i].fd);
+    }
+}
+
 int open_TCPsocket()
 {
     int sk = socket(PF_INET, SOCK_STREAM, 0);
+    if (sk < 0) {
+        perror("socket");
+        return -1;
+    }
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
         .sin_port = htons(TCP_PORT),
@@ -106,10 +133,12 @@ int open_TCPsocket()
     struct sockaddr *addr_ptr = (struct sockaddr*)&addr;
     if (bind(sk, addr_ptr, socklen) < 0) {
         perror("bind");
+        close(sk);
         return -1;
     }
     if (listen(sk, SOMAXCONN) < 0) {
         perror("listen");
+        close(sk);
         return -1;
     }
     return sk;
@@ -155,7 +184,7 @@ int receive_results(struct Client *clients, long nclients)
     }
     while (received != nclients) {
         struct timeval timeout = {
-            .tv_sec = 30,
+            .tv_sec = 60,
             .tv_usec = 0
         };
         int events = select(maxfd + 1, &readfds, NULL, NULL, &timeout);

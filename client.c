@@ -65,10 +65,12 @@ int connect_server(long int nworkers)
     addr.sin_port = htons(TCP_PORT);
     if (connect(sk, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("connect");
+        close(sk);
         return -1;
     }
     if (write(sk, &nworkers, sizeof(nworkers)) < 0) {
         perror("write");
+        close(sk);
         return -1;
     }
     return sk;

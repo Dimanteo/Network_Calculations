@@ -19,7 +19,7 @@ struct Client {
 };
 
 int send_broadcast();
-long wait_clients(int sk, int nclients, struct Client *clients);
+long wait_clients(int sk, long nclients, struct Client *clients);
 int send_tasks(struct Client *clients, long nclients, long nworkers);
 int receive_results();
 int open_TCPsocket();
