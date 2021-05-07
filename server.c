@@ -22,9 +22,11 @@ int main(int argc, char **argv)
     if (send_tasks(clients, nclients, nworkers) < 0) {
         goto cleanup;
     }
-    if (receive_results(clients, nclients) < 0) {
+    double result = receive_results(clients, nclients);
+    if (isnan(result)) {
         goto cleanup;
     }
+    printf("Result = %f\n", result);
     return_code = EXIT_SUCCESS;
 
     cleanup:
@@ -170,7 +172,7 @@ int send_tasks(struct Client *clients, long nclients, long nworkers)
     return 0;
 }
 
-int receive_results(struct Client *clients, long nclients)
+double receive_results(struct Client *clients, long nclients)
 {
     fd_set readfds;
     int maxfd = -1;
@@ -190,18 +192,22 @@ int receive_results(struct Client *clients, long nclients)
         int events = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
         if (events < 0) {
             perror("select");
-            return -1;
+            return NAN;
         } else if (events == 0) {
             fprintf(stderr, "Clients response timeout exceeded.\n");
-            return -1;
+            return NAN;
         }
         for (int i = 0; i < nclients; i++) {
             if (FD_ISSET(clients[i].fd, &readfds)) {
                 FD_CLR(clients[i].fd, &readfds);
                 double resbuf = 0;
-                if (read(clients[i].fd, &resbuf, sizeof(resbuf)) < 0) {
+                ssize_t bytes = read(clients[i].fd, &resbuf, sizeof(resbuf));
+                if (bytes < 0) {
                     perror("read");
-                    return -1;
+                    return NAN;
+                } else if (bytes == 0) {
+                    fprintf(stderr, "Lost results from client[%d].\n", i);
+                    return NAN;
                 }
                 result += resbuf;
                 received++;
@@ -210,8 +216,7 @@ int receive_results(struct Client *clients, long nclients)
             }
         }
     }
-    printf("Result = %f\n", result);
-    return 0;
+    return result;
 }
 
 int parse_task_file(struct Task *task)

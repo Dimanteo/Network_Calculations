@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "cmdargs.h"
 #include "network.h"
@@ -21,7 +22,7 @@ struct Client {
 int send_broadcast();
 long wait_clients(int sk, long nclients, struct Client *clients);
 int send_tasks(struct Client *clients, long nclients, long nworkers);
-int receive_results();
+double receive_results();
 int open_TCPsocket();
 int parse_task_file(struct Task *task);
 #endif
