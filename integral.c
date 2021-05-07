@@ -23,5 +23,6 @@ void integrate(numb_t(*f)(numb_t), numb_t a, numb_t b, size_t n_steps, numb_t *s
 
 numb_t function(numb_t x) 
 {
-    return pow(cos(x), 3) - 3 * sin(x) * sin(x) * cos(x); // cos(3x)
+    // return pow(cos(x), 3) - 3 * sin(x) * sin(x) * cos(x); // cos(3x)
+    return 3 * sin(x) * pow(cos(x), 2) - pow(sin(x), 3); // sin(3x)
 }
