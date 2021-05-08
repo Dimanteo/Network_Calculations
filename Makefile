@@ -2,12 +2,13 @@ CC := gcc
 CFLAGS := -g -Wall -Wextra -MD -std=c99
 LDFLAGS := -pthread -lm
 LIBWORKER := worker.o integral.o topology.o threads.o
+COMMON := cmdargs.o network.o
 
 all: client.out server.out
 
-client.out : client.o cmdargs.o $(LIBWORKER)
+client.out : client.o $(COMMON) $(LIBWORKER)
 
-server.out : server.o cmdargs.o
+server.out : server.o $(COMMON)
 
 client.o : client.c
 
@@ -22,6 +23,8 @@ integral.o : integral.c
 topology.o : topology.c
 
 threads.o : threads.c
+
+network.o : network.c
 
 %.out : %.o
 	$(CC) $^ -o $@ $(LDFLAGS)

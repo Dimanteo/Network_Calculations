@@ -102,7 +102,25 @@ long wait_clients(int sk, long nclients, struct Client *clients) {
             close_clientsfd(i, clients);
             return -1;
         }
+        if (set_fdflags(fd) < 0) {
+            close(fd);
+            return -1;
+        }
         clients[i].fd = fd;
+        fd_set client_readfd;
+        FD_ZERO(&client_readfd);
+        FD_SET(clients[i].fd, &client_readfd);
+        struct timeval client_timeout = {.tv_sec = 30, .tv_usec = 0};
+        int client_event = select(clients[i].fd + 1, &client_readfd, NULL, NULL, &client_timeout);
+        if (client_event < 0) {
+            perror("select");
+            return -1;
+        } else if (client_event == 0) {
+            fprintf(stderr, "Client not responding\n");
+            close(clients[i].fd);
+            i--;
+            continue;
+        }
         ssize_t bytes = read(fd, &clients[i].workers, sizeof(clients[i].workers));
         if (bytes < 0) {
             perror("read");

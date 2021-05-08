@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/select.h>
 
 #include "network.h"
 #include "cmdargs.h"

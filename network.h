@@ -1,13 +1,17 @@
 #ifndef NETWORK_H
 #define NETWORK_H
+#include <unistd.h>
 
-static const short UDP_PORT = 8000;
-static const short TCP_PORT = 8001;
+extern const short UDP_PORT;
+extern const short TCP_PORT;
 
 struct Task {
     double from;
     double to;
     size_t nsteps;
 };
+
+int set_fdflags(int fd) ;
+
 #define DBG_SLEEP(t) printf("SLEEP\n"); sleep(t);
 #endif

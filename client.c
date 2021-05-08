@@ -68,6 +68,10 @@ int connect_server(long int nworkers)
         close(sk);
         return -1;
     }
+    if (set_fdflags(sk) < 0) {
+        close(sk);
+        return -1;
+    }
     if (write(sk, &nworkers, sizeof(nworkers)) < 0) {
         perror("write");
         close(sk);
@@ -78,6 +82,22 @@ int connect_server(long int nworkers)
 
 int receive_task(int server_fd, struct Task *task)
 {
+    // select
+    fd_set readfd;
+    FD_ZERO(&readfd);
+    FD_SET(server_fd, &readfd);
+    struct timeval timeout = {
+        .tv_sec  = 30,
+        .tv_usec = 0
+    };
+    int event = select(server_fd + 1, &readfd, NULL, NULL, &timeout);
+    if (event < 0) {
+        perror("select");
+        return -1;
+    } else if (event == 0) {
+        fprintf(stderr, "Server waiting timeout exceeded\n");
+        return -1;
+    }
     if (read(server_fd, task, sizeof(*task)) < 0) {
         perror("read");
         return -1;
