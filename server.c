@@ -252,6 +252,6 @@ int parse_task_file(struct Task *task)
         return -1;
     }
     fscanf(f, "a:%lf\nb:%lf\nd:%ld", &task->from, &task->to, &task->nsteps);
-    printf("Task: cos(3x) from %lf to %lf steps %ld\n", task->from, task->to, task->nsteps);
+    printf("Task: sin(3x) from %lf to %lf steps %ld\n", task->from, task->to, task->nsteps);
     return 0;
 }
