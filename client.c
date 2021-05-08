@@ -82,7 +82,6 @@ int connect_server(long int nworkers)
 
 int receive_task(int server_fd, struct Task *task)
 {
-    // select
     fd_set readfd;
     FD_ZERO(&readfd);
     FD_SET(server_fd, &readfd);
