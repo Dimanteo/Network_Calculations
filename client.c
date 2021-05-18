@@ -62,13 +62,13 @@ int connect_server(long int nworkers)
         perror("socket");
         return -1;
     }
-    addr.sin_port = htons(TCP_PORT);
-    if (connect(sk, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        perror("connect");
+    if (set_sock_options(sk) < 0) {
         close(sk);
         return -1;
     }
-    if (set_fdflags(sk) < 0) {
+    addr.sin_port = htons(TCP_PORT);
+    if (connect(sk, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        perror("connect");
         close(sk);
         return -1;
     }
@@ -85,11 +85,7 @@ int receive_task(int server_fd, struct Task *task)
     fd_set readfd;
     FD_ZERO(&readfd);
     FD_SET(server_fd, &readfd);
-    struct timeval timeout = {
-        .tv_sec  = 30,
-        .tv_usec = 0
-    };
-    int event = select(server_fd + 1, &readfd, NULL, NULL, &timeout);
+    int event = select(server_fd + 1, &readfd, NULL, NULL, NULL);
     if (event < 0) {
         perror("select");
         return -1;

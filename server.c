@@ -102,24 +102,14 @@ long wait_clients(int sk, long nclients, struct Client *clients) {
             close_clientsfd(i, clients);
             return -1;
         }
-        if (set_fdflags(fd) < 0) {
-            close(fd);
-            return -1;
-        }
         clients[i].fd = fd;
         fd_set client_readfd;
         FD_ZERO(&client_readfd);
         FD_SET(clients[i].fd, &client_readfd);
-        struct timeval client_timeout = {.tv_sec = 30, .tv_usec = 0};
-        int client_event = select(clients[i].fd + 1, &client_readfd, NULL, NULL, &client_timeout);
+        int client_event = select(clients[i].fd + 1, &client_readfd, NULL, NULL, NULL);
         if (client_event < 0) {
             perror("select");
             return -1;
-        } else if (client_event == 0) {
-            fprintf(stderr, "Client not responding\n");
-            close(clients[i].fd);
-            i--;
-            continue;
         }
         ssize_t bytes = read(fd, &clients[i].workers, sizeof(clients[i].workers));
         if (bytes < 0) {
@@ -149,6 +139,10 @@ int open_TCPsocket()
     int sk = socket(PF_INET, SOCK_STREAM, 0);
     if (sk < 0) {
         perror("socket");
+        return -1;
+    }
+    if (set_sock_options(sk) < 0) {
+        close(sk);
         return -1;
     }
     struct sockaddr_in addr = {
@@ -210,18 +204,11 @@ double receive_results(struct Client *clients, long nclients)
             maxfd = clients[i].fd;
     }
     while (received != nclients) {
-        struct timeval timeout = {
-            .tv_sec = 60,
-            .tv_usec = 0
-        };
-        int events = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
+        /*int events = select(maxfd + 1, &readfds, NULL, NULL, NULL);
         if (events < 0) {
             perror("select");
             return NAN;
-        } else if (events == 0) {
-            fprintf(stderr, "Clients response timeout exceeded.\n");
-            return NAN;
-        }
+        }*/
         for (int i = 0; i < nclients; i++) {
             if (FD_ISSET(clients[i].fd, &readfds)) {
                 FD_CLR(clients[i].fd, &readfds);

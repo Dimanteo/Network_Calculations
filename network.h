@@ -11,5 +11,5 @@ struct Task {
     size_t nsteps;
 };
 
-int set_fdflags(int fd) ;
+int set_sock_options(int fd);
 #endif
