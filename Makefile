@@ -26,6 +26,11 @@ threads.o : threads.c
 
 network.o : network.c
 
+config_integral:
+	echo a: > $@
+	echo b: >> $@
+	echo d: >> $@
+
 %.out : %.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
