@@ -193,39 +193,21 @@ int send_tasks(struct Client *clients, long nclients, long nworkers)
 
 double receive_results(struct Client *clients, long nclients)
 {
-    fd_set readfds;
-    int maxfd = -1;
     long received = 0;
     double result = 0;
-    FD_ZERO(&readfds);
-    for (int i = 0; i < nclients; i++) {
-        FD_SET(clients[i].fd, &readfds);
-        if (maxfd < clients[i].fd)
-            maxfd = clients[i].fd;
-    }
     while (received != nclients) {
-        /*int events = select(maxfd + 1, &readfds, NULL, NULL, NULL);
-        if (events < 0) {
-            perror("select");
-            return NAN;
-        }*/
         for (int i = 0; i < nclients; i++) {
-            if (FD_ISSET(clients[i].fd, &readfds)) {
-                FD_CLR(clients[i].fd, &readfds);
-                double resbuf = 0;
-                ssize_t bytes = read(clients[i].fd, &resbuf, sizeof(resbuf));
-                if (bytes < 0) {
-                    perror("read");
-                    return NAN;
-                } else if (bytes == 0) {
-                    fprintf(stderr, "Lost results from client[%d].\n", i);
-                    return NAN;
-                }
-                result += resbuf;
-                received++;
-            } else {
-                FD_SET(clients[i].fd, &readfds);
+            double resbuf = 0;
+            ssize_t bytes = read(clients[i].fd, &resbuf, sizeof(resbuf));
+            if (bytes < 0) {
+                perror("read");
+                return NAN;
+            } else if (bytes == 0) {
+                fprintf(stderr, "Lost results from client[%d].\n", i);
+                return NAN;
             }
+            result += resbuf;
+            received++;
         }
     }
     return result;
